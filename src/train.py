@@ -9,18 +9,35 @@ import pandas as pd
 import numpy as np
 import os
 
-model=AutoModelForSequenceClassification.from_pretrained("bert-base-chinese",num_labels=2)
-tokenizer = BertTokenizerFast.from_pretrained("bert-base-chinese")
+import configparser
+
+config=configparser.ConfigParser()
+
+config.read("config.ini")
+
+pretrained_model_name_or_path=config.get('train','pretrained_model_name_or_path')
+pretrained_tokenizer_name_or_path=config.get("train","pretrained_tokenizer_name_or_path")
+train_dataset_path=config.get('train','train_dataset_path')
+output_dir=config.get("train","output_dir")
+per_device_train_batch_size=int(config.get("train","per_device_train_batch_size"))
+num_train_epochs=float(config.get("train","num_train_epochs"))
+learning_rate=float(config.get("train","learning_rate"))
+warmup_radio=float(config.get("train","warmup_radio"))
+weight_decay=float(config.get("train","weight_decay"))
+model_weights_path=config.get("train","model_weights_path")
+
+model=AutoModelForSequenceClassification.from_pretrained(pretrained_model_name_or_path,num_labels=2)
+tokenizer = BertTokenizerFast.from_pretrained(pretrained_tokenizer_name_or_path)
 
 def transform_dataset(dataset):
     #填充是为了确保向量输入长度都一致，截断能有效限制输入的文本,第一个参数表示具体的列要截断的列，一般是包含文字的列
     return tokenizer(dataset['title'],padding="max_length",truncation=True)
 
-def train():
+def train(train_dataset_path):
     #model=AutoModelForSequenceClassification.from_pretrained("bert-base-chinese",num_labels=2)
     #tokenizer=BertTokenizerFast.from_pretrained("bert-base-chinese")
 
-    df_total_data=pd.read_excel("news_seed.xlsx")
+    df_total_data=pd.read_excel(train_dataset_path)
     df_valid_data=pd.DataFrame()
     df_valid_data["labels"]=df_total_data["正/负面"]
     df_valid_data["title"]=df_total_data["标题"]
@@ -37,13 +54,13 @@ def train():
     #train_dataset=train_dataset.with_format('torch')
 
     training_args=TrainingArguments(
-        output_dir="./checkpoints",
-        per_device_train_batch_size=4,
+        output_dir=output_dir,
+        per_device_train_batch_size=per_device_train_batch_size,
         #per_device_val_batch_size=64,
-        num_train_epochs=2,
-        learning_rate=2e-5,
-        warmup_ratio=0.1,
-        weight_decay=0.001,
+        num_train_epochs=num_train_epochs,
+        learning_rate=learning_rate,
+        warmup_ratio=warmup_radio,
+        weight_decay=weight_decay,
         fp16=True
     )
 
@@ -56,7 +73,7 @@ def train():
 
     trainer.train()
 
-    torch.save(model.state_dict(),"model_weights.pth")
+    torch.save(model.state_dict(),model_weights_path)
 
 if __name__=="__main__":
-    train()
+    train(train_dataset_path)

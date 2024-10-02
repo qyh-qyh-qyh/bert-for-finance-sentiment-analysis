@@ -5,21 +5,31 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score,f1_sco
 
 import pandas as pd
 
-model=AutoModelForSequenceClassification.from_pretrained("bert-base-chinese")
-tokenizer=AutoTokenizer.from_pretrained("bert-base-chinese")
-model.load_state_dict(torch.load("model_weights.pth"))
+import configparser
+
+config=configparser.ConfigParser()
+config.read('config.ini')
+
+pretrained_model_name_or_path=config.get("eval","pretrained_model_name_or_path")
+pretrained_tokenizer_name_or_path=config.get("eval","pretrained_tokenizer_name_or_path")
+eval_dataset_path=config.get("eval","eval_dataset_path")
+trained_model_weights_path=config.get("eval","trained_model_weights_path")
+
+model=AutoModelForSequenceClassification.from_pretrained(pretrained_model_name_or_path)
+tokenizer=AutoTokenizer.from_pretrained(pretrained_tokenizer_name_or_path)
+model.load_state_dict(torch.load(trained_model_weights_path))
 model.eval()
 
 def transform_dataset(dataset):
     return tokenizer(dataset['title'],padding="max_length",truncation=True)
 
-def evaluate():
+def evaluate(eval_dataset_path):
     #model=AutoModelForSequenceClassification.from_pretrained("bert-base-chinese")
     #tokenizer=AutoTokenizer.from_pretrained("bert-base-chinese")
     #model.load_state_dict(torch.load("model_weights.pth"))
     #model.eval()
 
-    df=pd.read_csv("test_data.csv")
+    df=pd.read_csv(eval_dataset_path)
     df_eval_data=pd.DataFrame()
     df_eval_data['title']=df["标题"]
     df_eval_data['labels']=df["正负面"]
@@ -45,4 +55,4 @@ def evaluate():
     print(f'F1-score:{f1}')
 
 if __name__=="__main__":
-    evaluate()
+    evaluate(eval_dataset_path)

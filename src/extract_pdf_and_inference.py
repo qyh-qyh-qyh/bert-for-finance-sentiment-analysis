@@ -8,9 +8,20 @@ import torch
 import datasets
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 
-model=AutoModelForSequenceClassification.from_pretrained("bert-base-chinese")
-tokenizer=AutoTokenizer.from_pretrained("bert-base-chinese")
-model.load_state_dict(torch.load("model_weights.pth"))
+import configparser
+config = configparser.ConfigParser()
+config.read('config.ini')
+
+pretrained_model_name_or_path=config.get("inference","pretrained_model_name_or_path")
+pretrained_tokenizer_name_or_path=config.get("inference","pretrained_tokenizer_name_or_path")
+trained_model_weights_path=config.get("inference","trained_model_weights_path")
+dir_path=config.get("inference","dir_path")
+excel_path=config.get("inference","excel_path")
+ws_title=config.get("inference","ws_title")
+
+model=AutoModelForSequenceClassification.from_pretrained(pretrained_model_name_or_path)
+tokenizer=AutoTokenizer.from_pretrained(pretrained_tokenizer_name_or_path)
+model.load_state_dict(torch.load(trained_model_weights_path))
 model.eval()
 
 def extract_text_from_pdf(file_path):
@@ -58,12 +69,13 @@ def one_file_process(file_path,excel_path):
     result_list=model_inference(sentences)
     #向工作本中插入数据
     wb=openpyxl.load_workbook(excel_path)
-    ws=wb["res_sheet"]
+    ws=wb[ws_title]
     max_row=ws.max_row
     ws.append(result_list)
     wb.save(excel_path)
 
 def all_process(dir_path,excel_path):
+    dir_path=os.path.abspath(dir_path)
     files=os.listdir(dir_path)
     for file in files:
         one_file_process(os.path.join(dir_path,file),excel_path)
@@ -71,8 +83,7 @@ def all_process(dir_path,excel_path):
 #新建一个工作本
 wb=openpyxl.Workbook()
 ws=wb.active
-ws.title="res_sheet"
-excel_path='result.xlsx'
+ws.title=ws_title
+excel_path=excel_path
 wb.save(excel_path)
-print(os.getcwd())
-all_process("/mnt/d/life/grade_three_1/nku_sentiment_analysis/pdf_files",excel_path)
+all_process(dir_path,excel_path)
