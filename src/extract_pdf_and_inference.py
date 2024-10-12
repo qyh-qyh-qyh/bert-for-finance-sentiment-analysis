@@ -10,7 +10,7 @@ from transformers import AutoTokenizer, AutoModelForSequenceClassification
 
 import configparser
 config = configparser.ConfigParser()
-config.read('config.ini')
+config.read('../config.ini')
 
 pretrained_model_name_or_path=config.get("inference","pretrained_model_name_or_path")
 pretrained_tokenizer_name_or_path=config.get("inference","pretrained_tokenizer_name_or_path")
